@@ -39,3 +39,13 @@ class CNNBlock(nn.Module):
 
     def forward(self, x):
         return self.leakyrelu(self.batchnorm_2d(self.conv(x)))
+
+
+
+class Yolov1(nn.Module):
+    def __init__(self, in_channels = 3, **kwargs):
+        super(Yolov1, self).__init__()
+        self.architecture = architecture_config
+        self.in_channels = in_channels
+        self.darknet = self._create_conv_layers(self.architecture)
+        self.fcl = self._create_fcl(**kwargs)
