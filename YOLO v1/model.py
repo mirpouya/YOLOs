@@ -49,3 +49,49 @@ class Yolov1(nn.Module):
         self.in_channels = in_channels
         self.darknet = self._create_conv_layers(self.architecture)
         self.fcl = self._create_fcl(**kwargs)
+
+    def forward(self, x):
+        x = self.darknet(x)
+        return self.fcl(torch.flatten(x, start_dim=1))  # not to flatten examples
+    
+
+    def _create_conv_layers(self, architecture):
+        layers = []
+        in_channels = self.in_channels
+
+        for x in architecture:
+            # x -> (kernel_size, filters, stride, padding)
+            if type(x) == tuple:
+                layers += [
+                    CNNBlock(
+                        in_channels, x[1], kernel_size=x[0], stride=x[2], padding=x[3]
+                    )
+                ]
+                in_channels = x[1]
+
+            elif type(x) == str:
+                layers += [
+                    nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
+                ]
+
+            elif type(x) == list:
+                conv1 = x[0]
+                conv2 = x[1]
+                repeat = x[2]
+
+                for _ in range(repeat):
+                    layers += [
+                        CNNBlock(
+                            in_channels, out_channels=conv1[1], kernel_size=conv1[0], stride=conv1[2], padding=conv1[3]
+                        )
+                    ]
+
+                    layers += [
+                        CNNBlock(
+                            in_channels=conv1[1], out_channels=conv2[1], kernel_size=conv2[0], stride=conv2[2], padding=conv2[3]
+                        )
+                    ]
+
+
+
+
