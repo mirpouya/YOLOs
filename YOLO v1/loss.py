@@ -50,8 +50,29 @@ class Yolov1Loss(nn.Module):
         box_pred[..., 2:4] = torch.sign(box_pred[..., 2: 4]) * torch.sqrt(torch.abs(box_pred[..., 2:4] + 1e-6))
         box_targets[..., 2:4] = torch.sqrt(box_targets[..., 2:4])
 
+        """
+        if box_pred shape is: (batch_size, s, s, 4)
+        flatten(box_pred, end_dim=-2) is : (batch_size * s * s, 4)
+        """
         box_loss = self.mse(
             torch.flatten(box_pred, end_dim=-2),
             torch.flatten(box_targets, end_dim=-2)
         )
+
+        """
+        FOR OBJECT LOSS:
+            in predictions[..., 25:26] exist the probability of the second bounding box containing an object
+            and predictions[..., 20:21] the probability of the first bounding box containing and object
+        """
+
+        pred_box = (
+            bestbox * predictions[..., 25:26] + (1 - bestbox) * predictions[..., 20:21]
+        )
+
+        object_loss = self.mse(
+            torch.flatten(exist_box * pred_box),
+            torch.flatten(exist_box * target[..., 20:21]),
+        )
+
+
 
