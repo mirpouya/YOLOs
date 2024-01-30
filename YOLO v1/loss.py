@@ -35,3 +35,23 @@ class Yolov1Loss(nn.Module):
         iou_maxes, bestbox = torch.max(ious, dim=0)
 
         exist_box = target[..., 20].unsqueeze(3)  # Iobj_i
+
+        """
+        BOX COORDINATE LOSS:
+            set boxes with no object to 0, among two predictions, pick the one with higher Iou
+        """
+        box_pred = exist_box * (
+            bestbox * predictions[..., 26: 30] + (1 - bestbox) * predictions[..., 21: 25]
+        )
+
+        box_targets = exist_box * target[..., 21: 25]
+
+        # calculating square root of width and height
+        box_pred[..., 2:4] = torch.sign(box_pred[..., 2: 4]) * torch.sqrt(torch.abs(box_pred[..., 2:4] + 1e-6))
+        box_targets[..., 2:4] = torch.sqrt(box_targets[..., 2:4])
+
+        box_loss = self.mse(
+            torch.flatten(box_pred, end_dim=-2),
+            torch.flatten(box_targets, end_dim=-2)
+        )
+
