@@ -74,5 +74,33 @@ class Yolov1Loss(nn.Module):
             torch.flatten(exist_box * target[..., 20:21]),
         )
 
+        """
+        FOR NO OBJECT LOSS
+        """
+        no_object_loss = self.mse(
+            torch.flatten((1 - exist_box) * predictions[..., 20:21], start_dim=1),
+            torch.flatten((1 - exist_box) * target[..., 20:21], start_dim=1),
+        )
+
+        no_object_loss += self.mse(
+            torch.flatten((1 - exist_box) * predictions[..., 25, 26], start_dim=1),
+            torch.flatten((1 - exist_box) * predictions[..., 25:26], start_dim=1)
+        )
+
+
+        """
+        FOR CLASS LOSS
+        """
+        class_loss = self.mse(
+            torch.flatten(exist_box * predictions[..., :20], end_dim=-2),
+            torch.flatten(exist_box * target[..., :20], end_dim=-2)
+        )
+
+        loss = (
+            self.lambda_coord * box_loss # first two rows of the paper
+            + object_loss # third row in the paper
+            + self.lambda_noobj * no_object_loss # forth row
+            + class_loss # fifth row
+        )
 
 
