@@ -54,3 +54,21 @@ def intersection_over_union(boxes_preds, boxes_labels, box_format="midpoint"):
 
 
 
+# Non max suppression function
+
+def non_max_suppression(
+        predictions,
+        iou_threshold,
+        prob_threshold,
+        box_format="corners"
+):
+    # predictions: list of predicted bounding boxes -> [[...], [...], ...]
+    # in each prediction we have [predicted_class_label, probability of the bounding box, x1, y1, x2, y2]
+
+    assert type(predictions) == list
+    # keeping boxes higher than prob_threshold
+    bboxes = [box for box in predictions if box[1] > prob_threshold]
+    boxes_after_nms = []
+
+    # sort bounding boxes with reference to highest probability
+    boxes = sorted(boxes, key=lambda x: x[1], reverse=True)
