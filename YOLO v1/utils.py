@@ -57,18 +57,40 @@ def intersection_over_union(boxes_preds, boxes_labels, box_format="midpoint"):
 # Non max suppression function
 
 def non_max_suppression(
-        predictions,
-        iou_threshold,
-        prob_threshold,
-        box_format="corners"
+        bboxes, iou_threshold, threshold, box_format="corners"
 ):
-    # predictions: list of predicted bounding boxes -> [[...], [...], ...]
-    # in each prediction we have [predicted_class_label, probability of the bounding box, x1, y1, x2, y2]
+    """
+    Parameters:
+        bboxes (list): list of lists, containing all bounding boxes info
+            [predicted class, prob_score, x1, y1,x2, y2]
+        iou_threshold (float): threshold to determine predicted boxes are correct
+        threshold (float): threshold to remove predicted bounding boxes (independent of iou)
+        box_format (str): midpoint or corners
 
-    assert type(predictions) == list
-    # keeping boxes higher than prob_threshold
-    bboxes = [box for box in predictions if box[1] > prob_threshold]
-    boxes_after_nms = []
+    Returns:
+        list of boxes after performing non max suppression given a specific iou threshold
+    """
 
-    # sort bounding boxes with reference to highest probability
-    boxes = sorted(boxes, key=lambda x: x[1], reverse=True)
+    assert type(bboxes) == list
+
+    bboxes = [box for box in bboxes if box[1] > threshold]
+    # sorting bboxes according to highest probability score
+    bboxes = sorted(bboxes, key=lambda x: x[1], reverse=True)
+    bboxes_after_nms = []
+
+    while bboxes:
+        chosen_box = bboxes.pop(0)
+        bboxes = [
+            box
+            for box in bboxes
+            if box[0] != chosen_box[0]
+            or intersection_over_union(
+                torch.tensor(chosen_box[2:]),
+                torch.tensor(box[2:]),
+                box_format = box_format,
+            )  <  iou_threshold 
+        ]
+
+        bboxes_after_nms.append(chosen_box)
+
+    return bboxes_after_nms
